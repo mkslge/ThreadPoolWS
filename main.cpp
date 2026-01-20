@@ -2,7 +2,7 @@
 #include <chrono>
 
 #include "worker.h"
-
+#include "threadpool.h"
 std::function<void()> fakeTask(int id) {
 
     return [id]()  {
@@ -12,19 +12,15 @@ std::function<void()> fakeTask(int id) {
     };
 }
 
+
+
+
 int main() {
-    worker test_worker = worker();
-
-    std::thread thread1(&worker::worker_loop, &test_worker);
-
-    test_worker.add_task(fakeTask(1));
-    test_worker.add_task(fakeTask(2));
-    test_worker.add_task(fakeTask(3));
-
-    test_worker.try_steal();
+    threadpool tp = threadpool(5);
+    for (int i = 0 ; i < 10;i++) {
+        tp.add_task(fakeTask(i));
+    }
 
 
-    test_worker.shutdown_worker();
-    thread1.join();
     return 0;
 }

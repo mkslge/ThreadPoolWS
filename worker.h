@@ -1,9 +1,8 @@
-//
-// Created by Mark on 1/19/26.
-//
+#pragma once
 
 #ifndef WORKER_H
 #define WORKER_H
+
 
 #include <iostream>
 #include <mutex>
@@ -13,15 +12,20 @@
 #include <functional>
 #include <utility>
 
+
+class threadpool;
+
 class worker {
+    threadpool* parent_pool_ref;
     std::mutex lock = std::mutex();
     std::condition_variable cv;
     std::deque<std::function<void()>> tasks;
 
+    std::function<void()> steal_ref;
     bool shutdown;
 
 public:
-    worker();
+    worker(threadpool* parent_pool_ref);
     ~worker();
     worker( worker &other) = delete;
     worker& operator=(const worker& other) = delete;

@@ -4,22 +4,34 @@
 
 #include "worker.h"
 
+#include "threadpool.h"
 
-worker::worker() {
+
+worker::worker(threadpool* parent_pool_ref) {
+    this->parent_pool_ref = parent_pool_ref;
     shutdown = false;
+    this->steal_ref = nullptr;
+
 }
 
-worker::~worker() = default;
+worker::~worker() {
+    this->shutdown = true;
+    cv.notify_all();
+}
 
 void worker::worker_loop() {
     while (true) {
+        if (this->parent_pool_ref->try_steal(&steal_ref)) {
+            this->tasks.push_front(steal_ref);
+        }
         std::function<void()> func;
         {
             std::cout << "Looping..." << std::endl;
             std::unique_lock<std::mutex> ul(lock);
 
             cv.wait( ul, [this]  {
-                return this->shutdown || !this->tasks.empty();
+                std:: cout << "Waiting..." << std::endl;
+                return  this->shutdown || !this->tasks.empty() ;
             });
 
             if (this->tasks.empty() && this->shutdown) {
@@ -28,8 +40,11 @@ void worker::worker_loop() {
 
             func = std::move(tasks.front());
             tasks.pop_front();
+
+
         }
         func();
+
     }
 }
 
@@ -42,6 +57,7 @@ bool worker::empty() {
 bool worker::add_task(const std::function<void()>& task) {
     std::lock_guard<std::mutex> lg(lock);
     tasks.push_front(task);
+    cv.notify_one();
     std::cout << "Pushing task..." << std::endl;
     return true;
 }

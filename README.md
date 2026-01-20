@@ -1,48 +1,53 @@
-#include <iostream>
-#include <chrono>
+***Thread Pool Implementation***
 
-#include "worker.h"
-#include "threadpool.h"
-std::function<void()> fakeTask(int id) {
+This is my implementation of a threadpool with work-stealing functionality.
 
-    return [id]()  {
-        std::cout << "Started task, ID: " << id << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(3));
-        std::cout << "Ended Task, ID: " << id << std::endl;
-    };
+**Comparison to single-threaded application**
+
+*Function:*
+
+`
+void fakeTask(int id) {
+    std::cout << "Started task, ID: " << id << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::cout << "Ended Task, ID: " << id << std::endl;
 }
+`
 
-void thread_pool_approach(int num_tasks) {
+*Single threaded code:*
+`
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-    threadpool tp = threadpool(5);
-    for (int i = 0 ; i < num_tasks;i++) {
-        tp.add_task(fakeTask(i));
-    }
-    tp.~threadpool();
-
-    std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> dur = end - start;
-
-    double seconds = dur.count() / 1000;
-    std::cout << "Time taken: " << seconds << " seconds" << std::endl;
-}
-
-void single_threaded_approach(int num_tasks) {
-    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-    for (int i= 0 ; i < num_tasks;i++) {
+    for (int i= 0 ; i < 10;i++) {
         std::function<void()> task = fakeTask(i);
         task();
     }
-
     std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> dur = end - start;
-
     double seconds = dur.count() / 1000;
     std::cout << "Time taken: " << seconds << " seconds" << std::endl;
-}
+`
 
-int main() {
-    single_threaded_approach(10);
-    thread_pool_approach(10);
-    return 0;
-}
+Output:
+`
+Time taken: 30.0486 seconds
+`
+
+*Thead pool code:*
+
+`
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+    threadpool tp = threadpool(5);
+    for (int i = 0 ; i < 10;i++) {
+        tp.add_task(fakeTask(i));
+    }
+    tp.~threadpool();
+    std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> dur = end - start;
+    double seconds = dur.count() / 1000;
+    std::cout << "Time taken: " << seconds << " seconds" << std::endl;
+`
+
+Output:
+`
+Time taken: 6.00654 seconds
+`

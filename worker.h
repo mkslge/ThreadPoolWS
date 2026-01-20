@@ -13,6 +13,7 @@
 #include <utility>
 
 
+//forward declaration here to avoid infinite #include
 class threadpool;
 
 class worker {

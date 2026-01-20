@@ -26,11 +26,9 @@ void worker::worker_loop() {
         }
         std::function<void()> func;
         {
-            std::cout << "Looping..." << std::endl;
             std::unique_lock<std::mutex> ul(lock);
 
             cv.wait( ul, [this]  {
-                std:: cout << "Waiting..." << std::endl;
                 return  this->shutdown || !this->tasks.empty() ;
             });
 
@@ -50,7 +48,6 @@ void worker::worker_loop() {
 
 bool worker::empty() {
     std::lock_guard<std::mutex> lg(lock);
-    std::cout << "Checking if empty, size: " << tasks.size() << std::endl;
     return tasks.empty();
 }
 
@@ -58,7 +55,6 @@ bool worker::add_task(const std::function<void()>& task) {
     std::lock_guard<std::mutex> lg(lock);
     tasks.push_front(task);
     cv.notify_one();
-    std::cout << "Pushing task..." << std::endl;
     return true;
 }
 

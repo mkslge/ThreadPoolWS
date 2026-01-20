@@ -54,7 +54,6 @@ bool threadpool::add_task(const std::function<void()>& task) {
     std::uniform_int_distribution<int> dist(0, this->size - 1);
     int random_index = dist(mt);
 
-    std::cout << "Added task to thread " << random_index + 1 << std::endl;
     return this->workers[random_index]->add_task(task);
 }
 

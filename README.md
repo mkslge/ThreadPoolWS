@@ -28,8 +28,10 @@ double seconds = dur.count() / 1000;
 std::cout << "Time taken: " << seconds << " seconds" << std::endl;
 ```
 
-Output: `Time taken: 30.0486 seconds
-
+Output: 
+`
+Time taken: 30.0486 seconds
+`
 ### *Threadpool code*
 
 ```cpp

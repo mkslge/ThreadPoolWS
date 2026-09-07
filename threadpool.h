@@ -27,7 +27,7 @@ public:
 
     bool add_task(const std::function<void()>& task);
 
-    bool try_steal(std::function<void()>* ref);
+    bool try_steal(std::function<void()>* ref, int idx);
 
 
 private:

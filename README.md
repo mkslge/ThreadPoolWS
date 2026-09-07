@@ -40,7 +40,6 @@ threadpool tp = threadpool(5);
 for (int i = 0 ; i < 10;i++) {
     tp.add_task(fakeTask(i));
 }
-tp.~threadpool();
 std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 std::chrono::duration<double, std::milli> dur = end - start;
 double seconds = dur.count() / 1000;

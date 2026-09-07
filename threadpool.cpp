@@ -27,11 +27,12 @@ void threadpool::init_size(int size) {
 }
 
 void threadpool::init_threads() {
-    for (int i= 0; i < this->size;i++) {
-        workers.emplace_back(std::make_unique<worker>(this));
+    for (auto i= 0; i < this->size;i++) {
+        workers.emplace_back(std::make_unique<worker>(this, i));
+    }
 
+    for(auto i = 0; i < this->size;i++) {
         worker_threads.emplace_back(&worker::worker_loop, workers.back().get());
-
     }
 }
 
@@ -59,8 +60,11 @@ bool threadpool::add_task(const std::function<void()>& task) {
 }
 
 
-bool threadpool::try_steal(std::function<void()>* ref ) {
+bool threadpool::try_steal(std::function<void()>* ref, int idx) {
     for (int i = 0; i < this->size;i++) {
+        if(idx == i) {
+            continue;
+        }
         if (workers[i] == nullptr) {
             break;
         }

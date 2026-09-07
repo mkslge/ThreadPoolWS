@@ -25,9 +25,9 @@ class worker {
 
     std::function<void()> steal_ref;
     bool shutdown;
-
+    int idx;
 public:
-    worker(threadpool* parent_pool_ref);
+    worker(threadpool* parent_pool_ref, int idx);
     ~worker();
     worker( worker &other) = delete;
     worker& operator=(const worker& other) = delete;

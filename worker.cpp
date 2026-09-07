@@ -7,10 +7,11 @@
 #include "threadpool.h"
 
 
-worker::worker(threadpool* parent_pool_ref) {
+worker::worker(threadpool* parent_pool_ref, int idx) {
     this->parent_pool_ref = parent_pool_ref;
     shutdown = false;
     this->steal_ref = nullptr;
+    this->idx = idx;
 
 }
 
@@ -21,12 +22,15 @@ worker::~worker() {
 
 void worker::worker_loop() {
     while (true) {
-        if (this->parent_pool_ref->try_steal(&steal_ref)) {
+        
+        if (this->parent_pool_ref->try_steal(&steal_ref, this->idx)) {
             this->tasks.push_front(steal_ref);
         }
+        
         std::function<void()> func;
         {
             std::unique_lock<std::mutex> ul(lock);
+            
 
             cv.wait( ul, [this]  {
                 return  this->shutdown || !this->tasks.empty() ;
@@ -41,7 +45,11 @@ void worker::worker_loop() {
 
 
         }
-        func();
+        try {
+            func();
+        } catch (...) {
+
+        }
 
     }
 }
@@ -74,6 +82,7 @@ std::optional< std::function<void()>> worker::try_steal() {
 void worker::shutdown_worker() {
     std::lock_guard<std::mutex> lg(lock);
     shutdown = true;
+    cv.notify_all();
 }
 
 

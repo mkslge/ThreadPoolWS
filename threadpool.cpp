@@ -3,6 +3,7 @@
 //
 
 #include "threadpool.h"
+#include <optional>
 
 
 threadpool::threadpool() {

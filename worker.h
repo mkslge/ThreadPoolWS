@@ -11,6 +11,7 @@
 #include <deque>
 #include <functional>
 #include <utility>
+#include <optional>
 
 
 //forward declaration here to avoid infinite #include

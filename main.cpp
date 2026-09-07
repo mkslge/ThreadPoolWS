@@ -18,7 +18,6 @@ void thread_pool_approach(int num_tasks) {
     for (int i = 0 ; i < num_tasks;i++) {
         tp.add_task(fakeTask(i));
     }
-    tp.~threadpool();
 
     std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> dur = end - start;
@@ -42,7 +41,6 @@ void single_threaded_approach(int num_tasks) {
 }
 
 int main() {
-    single_threaded_approach(10);
     thread_pool_approach(10);
     return 0;
 }

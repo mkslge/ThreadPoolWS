@@ -40,7 +40,7 @@ public:
 
 
     bool add_task(const std::function<void()>&);
-    std::pair <bool, std::function<void()>> try_steal();
+    std::optional <std::function<void()>> try_steal();
 
 
 };

@@ -58,15 +58,15 @@ bool worker::add_task(const std::function<void()>& task) {
     return true;
 }
 
-std::pair<bool, std::function<void()>> worker::try_steal() {
+std::optional< std::function<void()>> worker::try_steal() {
 
     std::lock_guard<std::mutex> lg(lock);
     if (this->tasks.empty()) {
-        return std::pair {false, nullptr };
+        return std::nullopt;
     } else {
         std::function<void()> stolen_func = std::move(this->tasks.back());
         this->tasks.pop_back();
-        return std::pair {true, stolen_func};
+        return {stolen_func};
     }
 
 }

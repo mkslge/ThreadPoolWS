@@ -63,10 +63,10 @@ bool threadpool::try_steal(std::function<void()>* ref ) {
         if (workers[i] == nullptr) {
             break;
         }
-        std::pair<bool, std::function<void()>> steal_pair = workers[i]->try_steal();
-        if (steal_pair.first) {
+        auto  stolen_func = workers[i]->try_steal();
+        if (stolen_func.has_value()) {
             std:: cout << "Work stealing successful." << std::endl;
-            *ref = steal_pair.second;
+            *ref = stolen_func.value();
             return true;
         }
     }

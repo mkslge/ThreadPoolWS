@@ -9,42 +9,49 @@
 
 worker::worker(threadpool* parent_pool_ref, int idx) {
     this->parent_pool_ref = parent_pool_ref;
-    shutdown = false;
-    this->steal_ref = nullptr;
     this->idx = idx;
 
 }
 
 worker::~worker() {
-    this->shutdown = true;
-    cv.notify_all();
 }
 
 void worker::worker_loop() {
     while (true) {
-        
-        if (this->parent_pool_ref->try_steal(&steal_ref, this->idx)) {
-            this->tasks.push_front(steal_ref);
-        }
-        
-        std::function<void()> func;
+        std::size_t observed_generation;
         {
-            std::unique_lock<std::mutex> ul(lock);
-            
+            std::lock_guard<std::mutex> guard(parent_pool_ref->work_mutex);
+            observed_generation = parent_pool_ref->work_generation;
+        }
 
-            cv.wait( ul, [this]  {
-                return  this->shutdown || !this->tasks.empty() ;
-            });
+        std::function<void()> func;
+        bool found_task = false;
+        {
+            std::lock_guard<std::mutex> guard(lock);
+            if (!tasks.empty()) {
+                func = std::move(tasks.front());
+                tasks.pop_front();
+                found_task = true;
+            }
+        }
 
-            if (this->tasks.empty() && this->shutdown) {
+        if (!found_task) {
+            found_task = parent_pool_ref->try_steal(&func, idx);
+        }
+
+        if (!found_task) {
+            std::unique_lock<std::mutex> guard(parent_pool_ref->work_mutex);
+            if (parent_pool_ref->shutting_down) {
                 return;
             }
 
-            func = std::move(tasks.front());
-            tasks.pop_front();
-
-
+            parent_pool_ref->work_cv.wait(guard, [this, observed_generation] {
+                return parent_pool_ref->shutting_down ||
+                       parent_pool_ref->work_generation != observed_generation;
+            });
+            continue;
         }
+
         try {
             func();
         } catch (...) {
@@ -62,7 +69,6 @@ bool worker::empty() {
 bool worker::add_task(const std::function<void()>& task) {
     std::lock_guard<std::mutex> lg(lock);
     tasks.push_front(task);
-    cv.notify_one();
     return true;
 }
 
@@ -78,11 +84,3 @@ std::optional< std::function<void()>> worker::try_steal() {
     }
 
 }
-
-void worker::shutdown_worker() {
-    std::lock_guard<std::mutex> lg(lock);
-    shutdown = true;
-    cv.notify_all();
-}
-
-

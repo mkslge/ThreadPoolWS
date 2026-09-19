@@ -5,14 +5,24 @@
 
 #include <vector>
 #include <random>
+#include <condition_variable>
+#include <mutex>
 
 #include "worker.h"
 
 inline int DEFAULT_WORKER_SIZE = 20;
 
 class threadpool {
+    friend class worker;
+
     unsigned seed;
     std::mt19937 mt;
+    std::mutex mt_mutex;
+
+    std::mutex work_mutex;
+    std::condition_variable work_cv;
+    std::size_t work_generation = 0;
+    bool shutting_down = false;
 
     std::vector<std::unique_ptr<worker>> workers;
     std::vector<std::thread> worker_threads;

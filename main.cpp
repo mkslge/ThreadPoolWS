@@ -22,7 +22,7 @@ void thread_pool_approach(int num_tasks) {
     for (int i = 0 ; i < num_tasks;i++) {
         tp.add_task(fakeTask(i));
     }
-    while(counter != NUM_TASKS);
+    while(counter != num_tasks);
     std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> dur = end - start;
 

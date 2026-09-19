@@ -21,6 +21,9 @@ threadpool::threadpool(int pools) {
 
 
 void threadpool::init_size(int size) {
+    if(size <= 0) {
+        size = DEFAULT_WORKER_SIZE;
+    }
     this->size = size;
     workers.reserve(size);
     worker_threads.reserve(size);
@@ -31,8 +34,24 @@ void threadpool::init_threads() {
         workers.emplace_back(std::make_unique<worker>(this, i));
     }
 
-    for(auto i = 0; i < this->size;i++) {
-        worker_threads.emplace_back(&worker::worker_loop, workers.back().get());
+    try {
+        for(auto i = 0; i < this->size;i++) {
+            worker_threads.emplace_back(&worker::worker_loop, workers[i].get());
+        }
+    } catch (...) {
+        {
+            std::lock_guard<std::mutex> guard(work_mutex);
+            shutting_down = true;
+        }
+        work_cv.notify_all();
+
+        for (auto& thread : worker_threads) {
+            if (thread.joinable()) {
+                thread.join();
+            }
+        }
+
+        throw;
     }
 }
 
@@ -43,9 +62,11 @@ void threadpool::init_rand() {
 
 
 threadpool::~threadpool() {
-    for (int i= 0 ; i < this->size;i++) {
-        workers[i].get()->shutdown_worker();
+    {
+        std::lock_guard<std::mutex> guard(work_mutex);
+        shutting_down = true;
     }
+    work_cv.notify_all();
 
     for (int i= 0 ; i < this->size;i++) {
         worker_threads[i].join();
@@ -53,10 +74,26 @@ threadpool::~threadpool() {
 }
 
 bool threadpool::add_task(const std::function<void()>& task) {
-    std::uniform_int_distribution<int> dist(0, this->size - 1);
-    int random_index = dist(mt);
+    int random_index;
+    {
+        std::lock_guard<std::mutex> guard(mt_mutex);
+        std::uniform_int_distribution<int> dist(0, this->size - 1);
+        random_index = dist(mt);
+    }
 
-    return this->workers[random_index]->add_task(task);
+
+    {
+        std::lock_guard<std::mutex> guard(work_mutex);
+        if (shutting_down) {
+            return false;
+        }
+
+        this->workers[random_index]->add_task(task);
+        ++work_generation;
+    }
+
+    work_cv.notify_all();
+    return true;
 }
 
 
@@ -70,7 +107,6 @@ bool threadpool::try_steal(std::function<void()>* ref, int idx) {
         }
         auto  stolen_func = workers[i]->try_steal();
         if (stolen_func.has_value()) {
-            std:: cout << "Work stealing successful." << std::endl;
             *ref = stolen_func.value();
             return true;
         }
@@ -78,6 +114,3 @@ bool threadpool::try_steal(std::function<void()>* ref, int idx) {
 
     return false;
 }
-
-
-
